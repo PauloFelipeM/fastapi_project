@@ -1,0 +1,39 @@
+version: '3'
+
+services:
+  app:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: fastapi-app
+    restart: unless-stopped
+    working_dir: /code
+    volumes:
+      - ./:/code:rw
+    networks:
+      - fastapiNetwork
+    ports:
+      - '9005:80'
+    depends_on:
+      - database
+  database:
+    image: 'mysql/mysql-server:8.0'
+    restart: unless-stopped
+    container_name: fastapi-database
+    ports:
+      - '3306:3306'
+    environment:
+      MYSQL_DATABASE: "fastapi"
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_ROOT_PASSWORD: "1NfHJ9WKX2YIZ"
+      MYSQL_ALLOW_EMPTY_PASSWORD: "1"
+    volumes:
+      - 'mysql_data:/var/lib/mysql'
+    networks:
+      - fastapiNetwork
+volumes:
+  mysql_data:
+    driver: local
+networks:
+  fastapiNetwork:
+    driver: bridge
