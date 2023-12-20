@@ -11,6 +11,7 @@ def create(fruit: Fruit):
     db_session.add(fruit_db)
     db_session.commit()
 
+
 def update(prev_fruit: FruitModel, fruit: Fruit):
     prev_fruit.name = fruit.name
     db_session.commit()

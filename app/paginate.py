@@ -15,7 +15,7 @@ def paginate(model, request: Request):
     total = model.query.count()
     last_page = (total // per_page)
 
-    page_obj = model.query.offset((page - 1) * per_page).limit(per_page).all()
+    page_obj = model.query.order_by(model.id.desc()).offset((page - 1) * per_page).limit(per_page).all()
 
     if page >= last_page:
         next = None
