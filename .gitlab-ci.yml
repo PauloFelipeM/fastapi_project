@@ -1,0 +1,52 @@
+image: paulofelipem/fruits-fastapi:latest
+
+stages:
+  - test
+  - deploy
+
+variables:
+  MYSQL_ROOT_PASSWORD: secret
+  MYSQL_DATABASE: homestead
+  MYSQL_USER: homestead
+  MYSQL_PASSWORD: secret
+
+services:
+  - name: mysql/mysql-server:8.0
+    alias: mysql
+
+unit_test:
+ stage: test
+ script:
+  - echo "Run migrations"
+  - alembic upgrade head
+ only:
+ - master
+
+deploy:
+  stage: deploy
+  before_script:
+    - apk update && apk add openssh-client
+    - eval $(ssh-agent -s)
+    - mkdir -p /root/.ssh
+    - chmod 0700 /root/.ssh
+    - echo "$SSH_PUBLIC_KEY_PROD" > /root/.ssh/id_rsa.pub
+    - echo "$SSH_PRIVATE_KEY_PROD" > /root/.ssh/id_rsa
+    - chmod 600 /root/.ssh/id_rsa
+    - chmod 600 /root/.ssh/id_rsa.pub
+    - ssh-add /root/.ssh/id_rsa
+  script:
+   - echo "Stoping containers..."
+   - ssh -p 2222 -tt $USER_DEPLOY_PROD@$DEPLOY_SERVER_PROD 'cd crowd-content && docker-compose down && docker volume prune -f'
+   - echo "Removing containers..."
+   - ssh -p 2222 -tt $USER_DEPLOY_PROD@$DEPLOY_SERVER_PROD 'cd crowd-content && sudo chmod 777 docker-compose -R && docker-compose pull'
+   - echo "Pulling the git files"
+   - ssh -p 2222 -tt $USER_DEPLOY_PROD@$DEPLOY_SERVER_PROD 'cd crowd-content && git reset --hard origin/master && git checkout master && git pull origin master'
+   - echo "Up docker Images"
+   - ssh -p 2222 -tt $USER_DEPLOY_PROD@$DEPLOY_SERVER_PROD 'cd crowd-content && docker-compose up -d'
+   - echo "Run pip install"
+   - ssh -p 2222 -tt $USER_DEPLOY_PROD@$DEPLOY_SERVER_PROD 'cd crowd-content && docker-compose exec -T app pip install --no-cache-dir --upgrade -r /code/requirements.txt'
+   - echo "Run migrations"
+   - ssh -p 2222 -tt $USER_DEPLOY_PROD@$DEPLOY_SERVER_PROD 'cd crowd-content && docker-compose exec -T app alembic upgrade head'
+   - echo "OK"
+  only:
+    - master
