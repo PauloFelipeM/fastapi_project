@@ -5,7 +5,7 @@ from .endpoints import fruit_endpoint
 
 def create_app():
     app = FastAPI()
-    app.include_router(fruit_endpoint.router)
+    app.include_router(fruit_endpoint.router, prefix='/api/v1')
 
     origins = ["*"]
 
